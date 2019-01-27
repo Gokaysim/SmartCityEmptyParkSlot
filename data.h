@@ -1,23 +1,23 @@
-
-
-
-struct Node{
+struct DataNode{
   int nodeId;
   int isEmpty;
-  struct Node*  next;
-  struct Node* previous;
+  struct DataNode*  next;
+  struct DataNode* previous;
 };
 
 struct DataStructure{
-  struct Node * head;
-  struct Node * tail;
+  struct DataNode * head;
+  struct DataNode * tail;
   int count;
+  unsigned int * hashTable;
 };
 
-void initData();
+struct DataStructure* initDataStructure();
 
-void addToTail(unsigned long timeStamps,int nodeId,int isEmpty);
-void addToHead(unsigned long timeStamps,int nodeId,int isEmpty);
-int getCount();
-struct Node * getNFirstElement(int N);
-unsigned long getTimestamp(int nodeId);
+void addToTail(struct DataStructure * dataStructure, unsigned int timeStamp,int nodeId,int isEmpty);
+void addToHead(struct DataStructure * dataStructure, unsigned int timeStamp,int nodeId,int isEmpty);
+int getCount(struct DataStructure * dataStructure);
+struct DataNode * getNFirstElement(struct DataStructure * dataStructure,int N);
+
+unsigned int getTimestamp(struct DataStructure * dataStructure,int nodeId);
+void setTimestamp(struct DataStructure * dataStructure,int nodeId,unsigned int timeStamp);

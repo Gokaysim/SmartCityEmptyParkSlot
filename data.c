@@ -1,37 +1,38 @@
 #include "data.h"
 #include "base.h"
+#include <stdlib.h>
 #define MaxHashSize 100
 
-static unsigned long * hashTable =NULL;
-static struct DataStructure * dataStructure;
-void initData()
+void setTimestamp(struct DataStructure * dataStructure,int nodeId,unsigned int timeStamp);
+
+struct DataStructure* initDataStructure()
 {
-  dataStructure = (struct DataStructure *) malloc(sizeof(struct DataStructure));
+  struct DataStructure * dataStructure = (struct DataStructure *) malloc(sizeof(struct DataStructure));
   dataStructure->count=0;
   dataStructure->head=NULL;
   dataStructure->tail=NULL;
-
-  hashTable =(unsigned long *) malloc(sizeof(unsigned long)*MaxHashSize);
+  dataStructure->hashTable =(int *) malloc(sizeof(int)*MaxHashSize);
 
   int i = 0;
   for(i = 0;i<MaxHashSize;i++)
   {
-    hashTable[i] = 0;
+    dataStructure->hashTable[i] = 0;
   }
+  return dataStructure;
 }
 
-void addToTail(unsigned long timeStamp,int nodeId,int isEmpty)
+void addToTail(struct DataStructure * dataStructure,unsigned int timeStamp,int nodeId,int isEmpty)
 {
-  unsigned long lastTimeStamp = hashTable[nodeId%MaxHashSize];  
+  unsigned  int lastTimeStamp = getTimestamp(dataStructure,nodeId);
   if(lastTimeStamp>timeStamp)
   {
     return;
   }
-  setTimestamp(nodeId,timeStamp);
+  setTimestamp(dataStructure,nodeId,timeStamp);
 
   if(dataStructure->head==NULL)
   {
-    dataStructure->head = (struct Node*) malloc(sizeof(struct Node));
+    dataStructure->head = (struct DataNode*) malloc(sizeof(struct DataNode));
     dataStructure->tail= dataStructure->head;
 
     dataStructure->head->nodeId = nodeId;
@@ -43,7 +44,7 @@ void addToTail(unsigned long timeStamp,int nodeId,int isEmpty)
   }
   else{
 
-    struct Node* current = dataStructure->head;
+    struct DataNode* current = dataStructure->head;
     while(1)
     {
 
@@ -55,7 +56,7 @@ void addToTail(unsigned long timeStamp,int nodeId,int isEmpty)
       else if(current->next==NULL)
       {
         //TODO assignment may deruduce CPU cycle usage
-        current->next= (struct Node*)malloc(sizeof(struct Node));
+        current->next = (struct DataNode*)malloc(sizeof(struct DataNode));
         current->next->previous = current;
         current->next->next = NULL;
         current->next->nodeId = nodeId;
@@ -73,28 +74,29 @@ void addToTail(unsigned long timeStamp,int nodeId,int isEmpty)
 }
 
 //TODO no check is needed for time being but it will be considered later
-void addToHead(unsigned long timeStamp,int nodeId,int isEmpty)
+void addToHead(struct DataStructure * dataStructure,unsigned int timeStamp,int nodeId,int isEmpty)
 {
   dataStructure->count--;
-  struct Node * previousHead = dataStructure->head;
-  dataStructure->head = (struct Node*) malloc(sizeof(struct Node));
+  struct DataNode * previousHead = dataStructure->head;
+  dataStructure->head = (struct DataNode*) malloc(sizeof(struct DataNode));
   dataStructure->head->nodeId = nodeId;
   dataStructure->head->isEmpty = isEmpty;
   dataStructure->head->next = previousHead;
   dataStructure->head->previous = NULL;
 
-  setTimestamp(nodeId,timeStamp);
+  setTimestamp(dataStructure,nodeId,timeStamp);
   if(previousHead == NULL)
   {
     dataStructure->tail= dataStructure->head;
   }
 }
 
-int getCount()
+int getCount(struct DataStructure * dataStructure)
 {
   return dataStructure->count;
 }
-struct Node * getNFirstElement(int n)
+
+struct DataNode* getNFirstElement(struct DataStructure * dataStructure,int n)
 {
   int reduceCounter;
   if(dataStructure->count<n)
@@ -105,8 +107,8 @@ struct Node * getNFirstElement(int n)
     reduceCounter = n;
   }
 
-  struct Node * head = dataStructure->head;
-  struct Node * current = dataStructure->head;
+  struct DataNode * head = dataStructure->head;
+  struct DataNode * current = dataStructure->head;
   reduceCounter--;
   while(reduceCounter>0)
   {
@@ -130,11 +132,12 @@ struct Node * getNFirstElement(int n)
   return head;
 }
 
-unsigned long getTimestamp(int nodeId)
+unsigned int getTimestamp(struct DataStructure * dataStructure,int nodeId)
 {
-  return hashTable[nodeId%MaxHashSize];
+  return dataStructure->hashTable[nodeId%MaxHashSize];
 }
-void setTimestamp(int nodeId,unsigned long timeStamp)
+
+void setTimestamp(struct DataStructure * dataStructure,int nodeId,unsigned int timeStamp)
 {
-  hashTable[nodeId%MaxHashSize]=timeStamp;
+  dataStructure->hashTable[nodeId%MaxHashSize]=timeStamp;
 }

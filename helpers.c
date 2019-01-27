@@ -1,15 +1,25 @@
 #include "helpers.h"
 #include "base.h"
+#include <stdlib.h>
 
-int split (const char *str, char c, char ***arr)
+
+unsigned int convert(char *st) {
+  char *x;
+  for (x = st ; *x ; x++) {
+    if (!isdigit(*x))
+      return 0L;
+  }
+  return (strtoul(st, 0L, 10));
+}
+
+int split (char *str, char c, char ***arr)
 {
     int count = 1;
     int token_len = 1;
     int i = 0;
-    char *p;
+    char *p = str;
     char *t;
 
-    p = str;
     while (*p != '\0')
     {
         if (*p == c)
@@ -62,43 +72,13 @@ int split (const char *str, char c, char ***arr)
     return count;
 }
 
-int atoi(char *str)
-{
-    int res = 0; // Initialize result
-
-    // Iterate through all characters of input string and
-    // update result
-    int i;
-    for (i = 0; str[i] != '\0'; ++i)
-    {
-        res = res*10 + str[i] - '0';
-    }
-
-    // return result.
-    return res;
-}
-unsigned long atoul(char *str)
-{
-    unsigned long res = 0; // Initialize result
-
-    // Iterate through all characters of input string and
-    // update result
-    int i;
-    for (i = 0; str[i] != '\0'; ++i)
-    {
-        res = res*10 + str[i] - '0';
-    }
-
-    // return result.
-    return res;
-}
-int splitToArrays(const char *str,int **arr,unsigned long ** arr2)
+int splitToArrays(char *str,int **arr,unsigned int ** arr2)
 {
   char ** tempCharArray= NULL;
 
   int count = split(str,',',&tempCharArray);
   *arr = (int*) malloc(sizeof(int) * count/2);
-  *arr2 = (unsigned long *) malloc(sizeof(unsigned long ) * count/2);
+  *arr2 = (unsigned int *) malloc(sizeof(unsigned int) * count/2);
   if (*arr == NULL)
       exit(1);
   int i;
@@ -106,10 +86,10 @@ int splitToArrays(const char *str,int **arr,unsigned long ** arr2)
   {
     if(i%2==0)
     {
-      (*arr)[i/2] = atoi(tempCharArray[i]);
+        (*arr)[i/2] = atoi(tempCharArray[i]);
     }
     else{
-      (*arr2)[i/2] = atoi(tempCharArray[i]);
+        (*arr2)[i/2] = convert(tempCharArray[i]);
     }
   }
   free(tempCharArray);
@@ -141,6 +121,7 @@ int strCmp(char string1[], char string2[])
     }
     return flag;
 }
+
 int getIntDigit(int i)
 {
   int digit = 1;
@@ -156,6 +137,7 @@ int getIntDigit(int i)
   }
   return digit;
 }
+
 int getULDigit(unsigned long i)
 {
   int digit = 1;
@@ -171,23 +153,23 @@ int getULDigit(unsigned long i)
   }
   return digit;
 }
-char * getString(int nodeId,unsigned long timeStamp)
+
+char * getString(int nodeId,unsigned int timeStamp)
 {
-
   int nodeIdDigit = getIntDigit(nodeId);
-  int timeStampDigit = getULDigit(timeStamp);
-  int totalLenght = nodeIdDigit + timeStampDigit +1;
-
-  char * array = (char *)malloc(sizeof(char)*totalLenght);
+  int timeStampDigit = getIntDigit(timeStamp);
+  int totalLenght = nodeIdDigit + timeStampDigit+1;
+  char * array = malloc(sizeof(char)*totalLenght);
   array[nodeIdDigit]=',';
+  array[totalLenght]='\0';
 
   while(timeStampDigit>0)
   {
     timeStampDigit --;
-
     int digit = timeStamp%10;
     timeStamp = timeStamp/10;
-    array[nodeIdDigit+1+timeStampDigit] = digit+'0';
+    char c = digit+'0';
+    array[nodeIdDigit+1+timeStampDigit] = c;
   }
   while(nodeIdDigit>0)
   {
@@ -196,9 +178,7 @@ char * getString(int nodeId,unsigned long timeStamp)
     int digit = nodeId%10;
     nodeId = nodeId/10;
     array[nodeIdDigit] = digit+'0';
-
   }
-
   return array;
-
 }
+

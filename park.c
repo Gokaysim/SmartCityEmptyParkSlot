@@ -19,6 +19,7 @@
 
 /* from er-rest-example/er-rexample-server.c */
 #include "rest-engine.h"
+#include "rtimer.h"
 
 /**************************************************************************/
 /* from er-rest-example/er-rexample-client.c */
@@ -26,13 +27,14 @@
 #include "er-coap-engine.h"
 #include "er-coap.h"
 #include "er-coap-observe-client.h"
+#include "sys/node-id.h"
 /* #include "dev/button-sensor.h" */
 
 
 
 
 #define REMOTE_PORT     UIP_HTONS(COAP_DEFAULT_PORT)
-#define GET_INTERVAL 10
+#define GET_INTERVAL 1
 
 #if DEBUG
 #define PRINT6ADDR(addr) PRINTF("[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
@@ -83,8 +85,8 @@ void client_chunk_handler(void *response)
 
   coap_get_payload(response, &chunk);
 
-  PRINTF("Response: \n");
-  PRINTF("RX: %d\n", chunk[0]);
+  //PRINTF("Response: \n");
+  //PRINTF("RX: %d\n", chunk[0]);
 }
 
 static void print_local_addresses(void)
@@ -202,10 +204,11 @@ PROCESS_THREAD(park_client, ev, data)
     }
 
     if(etimer_expired(&et)) {
-
-      if(rand()%100<25)
+      if(rand()%100<75)
       {
-        DataLayer_addOwnRecord(rand()%2);
+        unsigned long timeStamp = clock_seconds();
+        int abbreviated_timeStamp = timeStamp & INT_MAX;
+        DataLayer_addOwnRecord(rand()%2,node_id,abbreviated_timeStamp);
 
         char* message = DataLayer_getDataToSend();
 
@@ -252,6 +255,7 @@ PROCESS_THREAD(park_client, ev, data)
                           client_chunk_handler);
         free(message);
       }
+      PRINTF("***\n");
       etimer_reset(&et);
     }
   } /* END_WHILE(1) */

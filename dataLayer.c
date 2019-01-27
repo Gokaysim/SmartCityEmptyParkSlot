@@ -1,22 +1,22 @@
 #include "dataLayer.h"
 #include "base.h"
 #include "data.h"
-#include "rtimer.h"
-#include "sys/node-id.h"
+#include "helpers.h"
+#include <string.h>
+#include <stdlib.h>
 
+
+static struct DataStructure * dataStructure;
 void DataLayer_initStorage()
 {
-  initData();
-  // PRINTF("Digit : %d",)
-  unsigned long ul =  123;
+  dataStructure = initDataStructure();  
 }
 
-void DataLayer_addOwnRecord(int isEmpty){
-  unsigned long timeStamp = clock_seconds();
-  addToHead(timeStamp,node_id,isEmpty);
+void DataLayer_addOwnRecord(int isEmpty,int node_id,unsigned int timeStamp){  
+  addToHead(dataStructure,timeStamp,node_id,isEmpty);
 }
 
-void DataLayer_addOrReplaceRecords(const char * input)
+void DataLayer_addOrReplaceRecords(char * input)
 {
   char **arr = NULL;
 
@@ -32,17 +32,16 @@ void DataLayer_addOrReplaceRecords(const char * input)
       {
         PRINTF("Error: wrong input format!!!");
       }
-
       if(strCmp(fieldSplit[0],"Empty")==0)
       {
         int * nodeIdArray = NULL;
-        unsigned long * nodeTimeStamp = NULL;
+        unsigned  * nodeTimeStamp = NULL;
 
         int nodeIdCount = splitToArrays(fieldSplit[1], &nodeIdArray,&nodeTimeStamp);
         int j = 0;
         for(j=0;j<nodeIdCount;j++)
         {
-          addToTail(nodeTimeStamp[j],nodeIdArray[j],1);
+          addToTail(dataStructure,nodeTimeStamp[j],nodeIdArray[j],1);
         }
 
         free(nodeIdArray);
@@ -51,13 +50,13 @@ void DataLayer_addOrReplaceRecords(const char * input)
       else if(strCmp(fieldSplit[0],"Nonempty")==0)
       {
         int * nodeIdArray = NULL;
-        unsigned long * nodeTimeStamp = NULL;
+        int * nodeTimeStamp = NULL;
 
         int nodeIdCount = splitToArrays(fieldSplit[1], &nodeIdArray,&nodeTimeStamp);
         int j = 0;
         for(j=0;j<nodeIdCount;j++)
         {
-          addToTail(nodeTimeStamp[j],nodeIdArray[j],0);
+          addToTail(dataStructure,nodeTimeStamp[j],nodeIdArray[j],0);
         }
 
         free(nodeIdArray);
@@ -71,7 +70,7 @@ void DataLayer_addOrReplaceRecords(const char * input)
 
 int DataLayer_isDataNeedToBeSend()
 {
-  int count = getCount();
+  int count = getCount(dataStructure);
 
   if(count>5)
   {
@@ -82,31 +81,34 @@ int DataLayer_isDataNeedToBeSend()
 
 char * DataLayer_getDataToSend()
 {
-  char empty[2000]="Empty:";
-  char notEmpty[2000]="Nonempty:";
+  char *empty = (char *)malloc(sizeof(char)*2000);
+  strcat(empty,"Empty:");
+  char *notEmpty = (char *)malloc(sizeof(char)*2000);
+  strcat(notEmpty,"Nonempty:");
   //
-  int count = getCount();
+  int count = getCount(dataStructure);
   int reduceCounter = (int)(count /3);
   if(reduceCounter<5)
   {
     reduceCounter=5;
   }
-  struct Node * head  = getNFirstElement(reduceCounter);
+  struct DataNode * head  = getNFirstElement(dataStructure,reduceCounter);
 
-  struct Node * current = head;
+  struct DataNode * current = head;
   reduceCounter--;
   int firstEmpty=1,firstNonempty=1;
   while(reduceCounter>0)
   {
     int nodeId = current->nodeId;
-    unsigned long timeStamp = getTimestamp(nodeId);
+    int timeStamp = getTimestamp(dataStructure,nodeId);
 
-    if(current->isEmpty==0)
+    if(current->isEmpty==1)
     {
       if(firstEmpty==0)
       {
         strcat(empty,",");
       }
+
       strcat(empty,getString(nodeId,timeStamp));
 
       firstEmpty=0;
@@ -121,7 +123,6 @@ char * DataLayer_getDataToSend()
       firstNonempty=0;
     }
 
-
     if(current->next == NULL)
     {
       break;
@@ -131,21 +132,31 @@ char * DataLayer_getDataToSend()
     }
     reduceCounter--;
   }
-
+  
   if(firstEmpty==0&&firstNonempty==0)
   {
-    return strcat(strcat(empty,";"),notEmpty);
+    strcat(strcat(empty,";"),notEmpty);    
+    free(notEmpty);
+    return empty;
   }
   else if(firstEmpty ==0)
   {
+
+    free(notEmpty);
     return empty;
   }
   else if (firstNonempty==0)
   {
+    free(empty);
     return notEmpty;
   }
   else{
     return"";
   }
 
+}
+
+void DataLayer_destroyStorage()
+{
+  free(dataStructure);
 }
