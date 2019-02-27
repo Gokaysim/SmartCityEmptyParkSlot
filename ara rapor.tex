@@ -1,0 +1,79 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{enumitem}
+
+\title{SmartCity}
+\author{Gökay Şimşek }
+\date{28 February 2019}
+
+\begin{document}
+\maketitle
+
+\tableofcontents
+\newpage
+\section{Proje Özeti}
+Amaç büyük şehirlerin şehir merkezlerindeki boş park yeri bulma sorununu çözmek. Bu projenin bunu nasıl başaracağını aşağıdaki 3 maddede şöyle açıklanabilir:
+
+\begin{itemize}
+\item Her bir park yerine bir IOT cihaz yerleştirilir.
+\item Park yerinin doluluk durumu değiştiğinde servera bu bilginin iletilir.
+\item Sürücü boş park yeri aradığında iletilen bilgileri kullanarak sürücüye near time olarak boş park yerleri verilir. (Near time deme sebebim data aggregation yüzünden verilerin geç iletilmesi gibi bir durum olabilir).
+\end{itemize}
+
+\section{Projenin Teknik Özeti}
+IOT cihazların proglamasında contiki işletim sistemini kullanmaya karar vermiştik. Verilerin bir düğümden diğer düğüme aktarılması için COAP'ta karar kılmıştık. Projenin mühendislik boyutu bir zincir şeklinde dizilmiş ve her biri veri üreten düğümlerin ürettiği verilerin uçlara olabildiğince yüksek doğrulukta ve az enerjiyle tüketimiyle aktarmak. Bunu başarmak için bir düğümden sadece zincirdeki önceki ve sonraki düğümlere veri iletiliyor. Uzak mesafelere veri iletmek için güçlü radyo sinyallerine ihtiyaç var ki bu çok fazla kez zayıf radyo sinyalleri kullanmaktan daha verimsiz. Bu süreci daha verimli hala getirmek için veri aktarım sayısını da azaltmak gerekiyor bunun için data aggregation'a da başvurmaya karar vermiştik.
+
+
+\section{Bugüne Kadar Yapılanlar}
+Projeyi gerçeklemek için projeyi katmanlara ayırdım. Bu katmanlar veri yapısı, iş katmanı ve contiki katmanı olarak adlandırılabilir. 
+\subsection{Veri katmanı}
+Hash table ile double linked listi bir arada kullanan bir veri yapısı. Bu veri yapısı kodda data.h data.c de bulunabilir. Ayrıcat test klasörünün altında test etmek için de dataTest.c bulunmakta.
+\begin{itemize}
+\item Double linked list.
+\begin{itemize}
+\item Double linked list bir çeşit queue olarak kullanılıyor.
+\item Her bir node bir düğümden gelen veriyi tutuyor.
+\item Aynı düğümden veri gelirse bir önceki verinin üzerine yazılıyor ve sırasını değiştirmiyor.
+\end{itemize}
+\item Hash table düğümlerin idlerini alıp bunları son gönderdikleri timestamplere yönlendiren bir map olarak çalışıyor.
+\end{itemize}
+\subsection{İş katmanı}
+Bu katman "business" ve "data access" katmanlarının birleşmiş hali gibi düşülebilir. Sağladığı fonksiyonlarla iş akışlarını yerine getirecek bir API görevi görüyor. dataLayer.h ve dataLater.c de kaynak kodu bulunabilir. test klasörünün altında dataLayer.c ile test edilebilir.
+
+\begin{itemize}
+\item DataLayerInitStorage(): veri yapısnın memoryde yer almasını sağlıyor 1 kez çağırılıyor.
+\item DataLayerAddOrReplaceRecords(char * ınput) : Başka düğümlerden gelen ham veriyi işleyerek veri yapısında olması gerektiği şekliyle tutulmasını sağlıyor.
+\item DataLayerAddOwnRecord(int isEmpty, int nodeId, int timestamp):   Düğümün kendi ürettiği veriyi veri yapısına kaydediyor.
+\item DataLayerIsDataNeedToBeSend() : Verinin gönderilmesi için yeterince birikip birikmediğini belirliyor.
+\item DataLayeGetDataToSend(): Gönderilmesi gereken verinin gönderilecek formatta dönüyor.
+
+\end{itemize}
+
+\subsection{Contiki katmanı}
+Bu katmanda düğümün server ve client olarak çalışabilmesi için 2 process açıyor ve bir process dinlerken bir process rastgele aralıklarla yeni veri oluşturarak gerektiğinde biriken veriyi diğer düğümlere iletiyor.
+
+\section{Yaşadığım Sorunlar}
+
+\begin{itemize}
+\item Yaşadığım sorun contiki katmanındaydı. Aynı anda hem server hem de client olarak çalıştırmayı başaramadım. Client processi ilk requestini yaptıktan sonra devam etmiyor. İnternette de böyle bir kullanımla ilgili bir şey bulamadım. 
+\item Sizinle konuşmamız sırasında farkettiğim concurrency sıkıntıları da yaşadığım diğer sorun.
+\item Multicast sorunu ancak bu sorunu size aksettirmeden çözebileceğimi düşüyorum. Özetle COAP'ta multicast yapma ile ilgili bir örnek bulamadım. Ama çok da zaman ayırmadım diğer sorun yüzünden.
+\end{itemize}
+
+\newpage
+\section{Yapılacaklar}
+
+\begin{itemize}
+\item Contiki katmanında yaşadığım sorunu çözmek için aşağıdakileri deneyeceğim.
+\begin{itemize}
+\item Sorun port kaynaklı olabilir ancak ilk requesti atıyor. İstek servera ulaşıyor. Ama bunu araştıracağım.
+\item Sorun protothreadlerle kaçırdığım bir noktadan dolayı çıkmış olabilir diye düşünüyorum. Örnek vermek gerekirse bazı şeyleri local variable yapıyorum process içinde belkide global tanımlamam gerekiyor. Protothread kendi  içi harricindeki local variableları da öldürüyor olabilir.
+\item Client ve Server'ı tek process in içine alacağım. İlk yaklaşımım buydu ancak yapamayınca iki process'e dönmüştüm. Buna daha yoğunlaşmayı düşünüyorum.
+\item COAP'ın source kodunu inceleyerek sorunun kaynağına inmeyi ve kodu anlamayı düşünüyorum ama bu en son yapacağım şey olacak.
+\end{itemize}
+\item Concurrency sorunlarını çözmek için 2 liste kullanmayı düşüyorum ancak yine de ihtimal sıfırlanmayacak. Her türlü bir test_and_set veya semaphor gibi bir yapı kullanmak gerekecek gibi ama contiki ne sağlıyor konuyla alakalı bilmiyorum. Bunu araştıracağım.
+\item COAPta multicast yapabilmeyi çözmem lazım. UDP de nasıl yapıldığını buldum ancak COAPta bulamamıştım bir ihtimal COAP'ın kütüphanesini fork edip bunu ekleyebilirim. Ancak bu kısa sürecek bir iş gibi durmuyor.
+
+\end{itemize}
+
+\end{document}
